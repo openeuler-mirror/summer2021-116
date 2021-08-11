@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Mininet install script for Ubuntu and Debian
+# Nestnet install script for Ubuntu and Debian
 # Original author: Brandon Heller
 
 # Fail on error
@@ -9,12 +9,11 @@ set -e
 # Fail on unset var usage
 set -o nounset
 
-# Get directory containing nestnet folder
+# Get directory containing Nestnet folder
 MININET_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd -P )"
 
-# Set up build directory, which by default is the working directory
-#  unless the working directory is a subdirectory of nestnet,
-#  in which case we use the directory containing nestnet
+#  unless the working directory is a subdirectory of Nestnet,
+#  in which case we use the directory containing Nestnet
 BUILD_DIR="$(pwd -P)"
 case $BUILD_DIR in
   $MININET_DIR/*) BUILD_DIR=$MININET_DIR;; # currect directory is a subdirectory
@@ -48,15 +47,17 @@ if [ "$DIST" = "Ubuntu" ] || [ "$DIST" = "Debian" ]; then
 fi
 test -e /etc/fedora-release && DIST="Fedora"
 test -e /etc/redhat-release && DIST="RedHatEnterpriseServer"
-if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
+test -e /etc/openEuler-release && DIST="OpenEuler"
+if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "OpenEuler" ]; then
     install='sudo yum -y install'
     remove='sudo yum -y erase'
+    pipinstall='sudo pip install'
     pkginst='sudo rpm -ivh'
-    update='sudo yum'
+    update='sudo yum -y'
     # Prereqs for this script
-    if ! which lsb_release &> /dev/null; then
-        $install redhat-lsb-core
-    fi
+    #if ! which lsb_release &> /dev/null; then
+    #    $install redhat-lsb-core
+    #fi
 fi
 test -e /etc/SuSE-release && DIST="SUSE Linux"
 if [ "$DIST" = "SUSE Linux" ]; then
@@ -69,9 +70,9 @@ if [ "$DIST" = "SUSE Linux" ]; then
     fi
 fi
 if which lsb_release &> /dev/null; then
-    DIST=`lsb_release -is`
-    RELEASE=`lsb_release -rs`
-    CODENAME=`lsb_release -cs`
+    DIST=`OpenEuler`
+    RELEASE=`20.03`
+    CODENAME=`LTS`
 fi
 echo "Detected Linux distribution: $DIST $RELEASE $CODENAME $ARCH"
 
@@ -83,7 +84,7 @@ KERNEL_HEADERS=kernel-headers-${KERNEL_NAME}
 # Treat Raspbian as Debian
 [ "$DIST" = 'Raspbian' ] && DIST='Debian'
 
-DISTS='Ubuntu|Debian|Fedora|RedHatEnterpriseServer|SUSE LINUX'
+DISTS='Ubuntu|Debian|Fedora|RedHatEnterpriseServer|SUSE LINUX|OpenEuler'
 if ! echo $DIST | egrep "$DISTS" >/dev/null; then
     echo "Install.sh currently only supports $DISTS."
     exit 1
@@ -160,13 +161,15 @@ function kernel_clean {
 
 # Install Mininet deps
 function mn_deps {
-    echo "Installing Mininet dependencies"
-    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
-        $install gcc make socat psmisc xterm openssh-clients iperf \
-            iproute telnet python-setuptools libcgroup-tools \
+    echo "Installing Nestnet dependencies"
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "OpenEuler" ]; then
+        $install gcc make patch socat psmisc xterm openssh-clients iperf3 \
+            iproute telnet libcgroup-tools \
             ethtool help2man net-tools
-        $install ${PYPKG}-pyflakes pylint ${PYPKG}-pep8-naming  \
+        ###$install ${PYPKG}-pyflakes pylint ${PYPKG}-pep8-naming
+		$install ${PYPKG}-pyflakes pylint  \
             ${PYPKG}-pexpect
+		$pipinstall pep8
     elif [ "$DIST" = "SUSE LINUX"  ]; then
 		$install gcc make socat psmisc xterm openssh iperf \
 			iproute telnet ${PYPKG}-setuptools libcgroup-tools \
@@ -198,15 +201,16 @@ function mn_deps {
         $install cgroup-tools || $install cgroup-bin
     fi
 
-    echo "Installing Mininet core"
-    pushd $MININET_DIR/nestnet
+    echo "Installing Nestnet core"
+    pip_install
+    pushd $MININET_DIR/NestNet
     sudo PYTHON=${PYTHON} make install
     popd
 }
 
-# Install Mininet documentation dependencies
+# Install Nestnet documentation dependencies
 function mn_doc {
-    echo "Installing Mininet documentation dependencies"
+    echo "Installing Nestnet documentation dependencies"
     $install doxygen texlive-fonts-recommended
     if ! $install doxygen-latex; then
         echo "doxygen-latex not needed"
@@ -222,7 +226,7 @@ function of {
     echo "Installing OpenFlow reference implementation..."
     cd $BUILD_DIR
     $install autoconf automake libtool make gcc
-    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "OpenEuler" ]; then
         $install git pkgconfig glibc-devel
 	elif [ "$DIST" = "SUSE LINUX"  ]; then
        $install git pkgconfig glibc-devel
@@ -231,11 +235,11 @@ function of {
     fi
     # was: git clone git://openflowswitch.org/openflow.git
     # Use our own fork on github for now:
-    git clone git://github.com/nestnet/openflow
+    git clone git://github.com/mininet/openflow
     cd $BUILD_DIR/openflow
 
     # Patch controller to handle more than 16 switches
-    patch -p1 < $MININET_DIR/nestnet/util/openflow-patches/controller.patch
+    patch -p1 < $MININET_DIR/NestNet/util/openflow-patches/controller.patch
 
     # Resume the install:
     ./boot.sh
@@ -291,7 +295,7 @@ function of13 {
 function install_wireshark {
     if ! which wireshark; then
         echo "Installing Wireshark"
-        if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
+        if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "OpenEuler" ]; then
             $install wireshark wireshark-gnome
 		elif [ "$DIST" = "SUSE LINUX"  ]; then
 			$install wireshark
@@ -303,7 +307,7 @@ function install_wireshark {
     # Copy coloring rules: OF is white-on-blue:
     echo "Optionally installing wireshark color filters"
     mkdir -p $HOME/.wireshark
-    cp -n $MININET_DIR/nestnet/util/colorfilters $HOME/.wireshark
+    cp -n $MININET_DIR/NestNet/util/colorfilters $HOME/.wireshark
 
     echo "Checking Wireshark version"
     WSVER=`wireshark -v | egrep -o '[0-9\.]+' | head -1`
@@ -393,7 +397,7 @@ function ubuntuOvs {
     /sbin/modinfo openvswitch
     sudo ovs-vsctl show
     # Switch can run on its own, but
-    # Mininet should control the controller
+    # Nestnet should control the controller
     # This appears to only be an issue on Ubuntu/Debian
     if sudo service openvswitch-controller stop 2>/dev/null; then
         echo "Stopped running controller"
@@ -409,11 +413,11 @@ function ubuntuOvs {
 function ovs {
     echo "Installing Open vSwitch..."
 
-    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "OpenEuler" ]; then
         $install openvswitch
-        if ! $install openvswitch-controller; then
-            echo "openvswitch-controller not installed"
-        fi
+	if ! $install openvswitch-controller; then
+	    echo "openvswitch-controller not installed"
+	fi
         return
     fi
 
@@ -444,7 +448,7 @@ function ovs {
     fi
     if [ "$OVSC" ]; then
         # Switch can run on its own, but
-        # Mininet should control the controller
+        # Nestnet should control the controller
         # This appears to only be an issue on Ubuntu/Debian
         if sudo service $OVSC stop 2>/dev/null; then
             echo "Stopped running controller"
@@ -489,7 +493,7 @@ function ivs {
 
     # Install dependencies
     $install gcc make
-    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "OpenEuler" ]; then
         $install git pkgconfig libnl3-devel libcap-devel openssl-devel
     else
         $install git-core pkg-config libnl-3-dev libnl-route-3-dev \
@@ -557,9 +561,9 @@ function nox {
 
     # Apply patches
     git checkout -b tutorial-destiny
-    git am $MININET_DIR/nestnet/util/nox-patches/*tutorial-port-nox-destiny*.patch
+    git am $MININET_DIR/NestNet/util/nox-patches/*tutorial-port-nox-destiny*.patch
     if [ "$DIST" = "Ubuntu" ] && version_ge $RELEASE 12.04; then
-        git am $MININET_DIR/nestnet/util/nox-patches/*nox-ubuntu12-hacks.patch
+        git am $MININET_DIR/NestNet/util/nox-patches/*nox-ubuntu12-hacks.patch
     fi
 
     # Build
@@ -636,7 +640,7 @@ function oftest {
 function cbench {
     echo "Installing cbench..."
 
-    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "OpenEuler" ]; then
         $install net-snmp-devel libpcap-devel libconfig-devel
 	elif [ "$DIST" = "SUSE LINUX"  ]; then
 		$install net-snmp-devel libpcap-devel libconfig-devel
@@ -646,7 +650,7 @@ function cbench {
     cd $BUILD_DIR/
     # was:  git clone git://gitosis.stanford.edu/oflops.git
     # Use our own fork on github for now:
-    git clone git://github.com/nestnet/oflops
+    git clone git://github.com/mininet/oflops
     cd oflops
     sh boot.sh || true # possible error in autoreconf, so run twice
     sh boot.sh
@@ -657,7 +661,7 @@ function cbench {
 }
 
 function vm_other {
-    echo "Doing other Mininet VM setup tasks..."
+    echo "Doing other Nestnet VM setup tasks..."
 
     # Remove avahi-daemon, which may cause unwanted discovery packets to be
     # sent during tests, near link status changes:
@@ -677,7 +681,7 @@ function vm_other {
     if ! grep 'disable_ipv6' /etc/sysctl.conf; then
         echo 'Disabling IPv6'
         echo '
-# Mininet: disable IPv6
+# Nestnet: disable IPv6
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.lo.disable_ipv6 = 1' | sudo tee -a /etc/sysctl.conf > /dev/null
@@ -712,7 +716,7 @@ net.ipv6.conf.lo.disable_ipv6 = 1' | sudo tee -a /etc/sysctl.conf > /dev/null
     $install ntp
 
     # Install vconfig for VLAN example
-    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" -o "$DIST" = "OpenEuler" ]; then
         $install vconfig
     else
         $install vlan
@@ -751,6 +755,12 @@ function modprobe {
     set -o nounset
 }
 
+function pip_install {
+    sudo pip install python-iptables
+    sudo pip install docker==4.1.0
+    sudo pip install grpcio-tools
+}
+
 function all {
     if [ "$DIST" = "Fedora" ]; then
         printf "\nFedora 18+ support (still work in progress):\n"
@@ -762,12 +772,13 @@ function all {
         exit 3
     fi
     echo "Installing all packages except for -eix (doxypy, ivs, nox-classic)..."
-    kernel
+    # kernel
     mn_deps
+    pip_install
     # Skip mn_doc (doxypy/texlive/fonts/etc.) because it's huge
     # mn_doc
     of
-    install_wireshark
+    # install_wireshark
     ovs
     # We may add ivs once it's more mature
     # ivs
@@ -776,7 +787,7 @@ function all {
     pox
     oftest
     cbench
-    echo "Enjoy Mininet!"
+    echo "Enjoy Nestnet!"
 }
 
 # Restore disk space and remove sensitive files before shipping a VM.
@@ -800,7 +811,7 @@ function vm_clean {
         echo '#!/bin/bash' | sudo tee /etc/rc.local
         sudo chmod +x /etc/rc.local
     fi
-    if ! grep nestnet /etc/rc.local >& /dev/null; then
+    if ! grep mininet /etc/rc.local >& /dev/null; then
         sudo sed -i -e "s/exit 0//" /etc/rc.local || true
         echo '
 # nestnet: regenerate ssh keys if we deleted them
@@ -816,7 +827,7 @@ exit 0
     rm -f ~/.bash_profile
 
     # Remove leftover install script if any
-    rm -f install-nestnet-vm.sh
+    rm -f install-mininet-vm.sh
 
     # Clear git changes
     git config --global user.name "None"
@@ -834,7 +845,7 @@ function usage {
     printf '\nUsage: %s [-abcdfhikmnprtvVwxy03]\n\n' $(basename $0) >&2
 
     printf 'This install script attempts to install useful packages\n' >&2
-    printf 'for Mininet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
+    printf 'for Nestnet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
     printf 'If you run into trouble, try\n' >&2
     printf 'installing one thing at a time, and looking at the \n' >&2
     printf 'specific installation function in this script.\n\n' >&2
@@ -844,7 +855,7 @@ function usage {
     printf -- ' -b: install controller (B)enchmark (oflops)\n' >&2
     printf -- ' -c: (C)lean up after kernel install\n' >&2
     printf -- ' -d: (D)elete some sensitive files from a VM image\n' >&2
-    printf -- ' -e: install Mininet documentation/LaT(e)X dependencies\n' >&2
+    printf -- ' -e: install Nestnet documentation/LaT(e)X dependencies\n' >&2
     printf -- ' -f: install Open(F)low\n' >&2
     printf -- ' -h: print this (H)elp message\n' >&2
     printf -- ' -i: install (I)ndigo Virtual Switch\n' >&2
@@ -854,7 +865,7 @@ function usage {
     printf -- ' -p: install (P)OX OpenFlow Controller\n' >&2
     printf -- ' -r: remove existing Open vSwitch packages\n' >&2
     printf -- ' -s <dir>: place dependency (S)ource/build trees in <dir>\n' >&2
-    printf -- ' -t: complete o(T)her Mininet VM setup tasks\n' >&2
+    printf -- ' -t: complete o(T)her Nestnet VM setup tasks\n' >&2
     printf -- ' -v: install Open (V)switch\n' >&2
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
     printf -- ' -w: install OpenFlow (W)ireshark dissector\n' >&2

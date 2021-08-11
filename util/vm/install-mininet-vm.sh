@@ -8,8 +8,8 @@
 set -e
 echo "$(whoami) ALL=(ALL) NOPASSWD:ALL" | sudo tee -a /etc/sudoers > /dev/null
 sudo sed -i -e 's/Default/#Default/' /etc/sudoers
-echo nestnet-vm | sudo tee /etc/hostname > /dev/null
-sudo sed -i -e 's/ubuntu/nestnet-vm/g' /etc/hosts
+echo mininet-vm | sudo tee /etc/hostname > /dev/null
+sudo sed -i -e 's/ubuntu/mininet-vm/g' /etc/hosts
 sudo hostname `cat /etc/hostname`
 sudo sed -i -e 's/splash//' /etc/default/grub
 sudo sed -i -e 's/quiet/text/' /etc/default/grub
@@ -25,10 +25,10 @@ if [ -e /etc/rc.local.backup ]; then
 fi
 # Fetch Mininet
 sudo apt-get -y -qq install git-core openssh-server
-git clone git://github.com/nestnet/nestnet
+git clone git://github.com/mininet/mininet
 # Optionally check out branch
 if [ "$1" != "" ]; then
-    pushd nestnet
+    pushd mininet
     git fetch origin $1
     git checkout $1
     popd
@@ -38,10 +38,10 @@ APT="sudo apt-get -y -qq"
 $APT install python3
 $APT install python2 || $APT install python
 python --version || $APT install python-is-python3
-time PYTHON=python2 nestnet/util/install.sh -n
-time PYTHON=python3 nestnet/util/install.sh
+time PYTHON=python2 mininet/util/install.sh -n
+time PYTHON=python3 mininet/util/install.sh
 # Finalize VM
-time nestnet/util/install.sh -tcd
+time mininet/util/install.sh -tcd
 # Ignoring this since NOX classic is deprecated
 #if ! grep NOX_CORE_DIR .bashrc; then
 #  echo "export NOX_CORE_DIR=~/noxcore/build/src/" >> .bashrc

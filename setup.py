@@ -10,7 +10,7 @@ import sys
 sys.path.append( '.' )
 from nestnet.net import VERSION
 
-scripts = [ join( 'bin', filename ) for filename in [ 'mn' ] ]
+scripts = [ join( 'bin', filename ) for filename in [ 'nn' ] ]
 
 modname = distname = 'nestnet'
 
@@ -25,7 +25,7 @@ setup(
         Mininet is a network emulator which uses lightweight
         virtualization to create virtual networks for rapid
         prototyping of Software-Defined Network (SDN) designs
-        using OpenFlow. http://mininet.org
+        using OpenFlow. http://nestnet.org
         """,
     classifiers=[
           "License :: OSI Approved :: BSD License",

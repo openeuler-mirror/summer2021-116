@@ -324,7 +324,7 @@ timezone America/Los_Angeles
 #Root password
 rootpw --disabled
 #Initial user
-user nestnet --fullname "nestnet" --password "nestnet"
+user mininet --fullname "mininet" --password "mininet"
 #Use text mode install
 text
 #Install OS instead of upgrade
@@ -516,7 +516,7 @@ def boot( cow, kernel, initrd, logfile, memory=1024, cpuCores=1, partnum=1 ):
     return vm
 
 
-def login( vm, user='nestnet', password='nestnet' ):
+def login( vm, user='mininet', password='mininet' ):
     "Log in to vm (pexpect object)"
     log( '* Waiting for login prompt' )
     vm.expect( 'login: ' )
@@ -563,7 +563,7 @@ def coreTest( vm, prompt=Prompt ):
     vm.sendline( 'sudo -n cgroups-mount' )
     vm.expect( prompt )
     log( '* Running make test' )
-    vm.sendline( 'cd ~/nestnet; sudo make test' )
+    vm.sendline( 'cd ~/mininet; sudo make test' )
     # We should change "make test" to report the number of
     # successful and failed tests. For now, we have to
     # know the time for each test, which means that this
@@ -590,21 +590,21 @@ def noneTest( vm, prompt=Prompt ):
 
 
 def examplesquickTest( vm, prompt=Prompt ):
-    "Quick test of nestnet examples"
+    "Quick test of mininet examples"
     installPexpect( vm, prompt )
-    vm.sendline( 'sudo -n python ~/nestnet/examples/test/runner.py -v -quick' )
+    vm.sendline( 'sudo -n python ~/mininet/examples/test/runner.py -v -quick' )
 
 
 def examplesfullTest( vm, prompt=Prompt ):
-    "Full (slow) test of nestnet examples"
+    "Full (slow) test of mininet examples"
     installPexpect( vm, prompt )
-    vm.sendline( 'sudo -n python ~/nestnet/examples/test/runner.py -v' )
+    vm.sendline( 'sudo -n python ~/mininet/examples/test/runner.py -v' )
 
 
 def walkthroughTest( vm, prompt=Prompt ):
-    "Test nestnet walkthrough"
+    "Test mininet walkthrough"
     installPexpect( vm, prompt )
-    vm.sendline( 'sudo -n python ~/nestnet/nestnet/test/test_walkthrough.py -v' )
+    vm.sendline( 'sudo -n python ~/mininet/mininet/test/test_walkthrough.py -v' )
 
 
 def useTest( vm, prompt=Prompt ):
@@ -630,7 +630,7 @@ def checkOutBranch( vm, branch, prompt=Prompt ):
     # The branch will be rebased to its parent on origin.
     # This probably doesn't matter since we're running on a COW disk
     # anyway.
-    vm.sendline( 'cd ~/nestnet; git fetch origin ' + branch +
+    vm.sendline( 'cd ~/mininet; git fetch origin ' + branch +
                  '; git checkout ' + branch +
                  '; git pull --rebase origin ' + branch )
     vm.expect( prompt )
@@ -652,15 +652,15 @@ def interact( vm, tests, pre='', post='', prompt=Prompt,
     branch = Branch if Branch else 'master'
     vm.sendline( 'wget '
                  'https://raw.github.com/mininet/mininet/%s/util/vm/'
-                 'install-nestnet-vm.sh' % branch )
+                 'install-mininet-vm.sh' % branch )
     vm.expect( prompt )
     log( '* Running VM install script' )
-    installcmd = 'bash -v install-nestnet-vm.sh'
+    installcmd = 'bash -v install-mininet-vm.sh'
     if Branch:
         installcmd += ' ' + Branch
     vm.sendline( installcmd )
-    vm.expect ( 'password for nestnet: ' )
-    vm.sendline( 'nestnet' )
+    vm.expect ( 'password for mininet: ' )
+    vm.sendline( 'mininet' )
     log( '* Waiting for script to complete... ' )
     # Long timeout since we may be on cloud CI
     # 30min for kvm, 1.5hr for emulation
@@ -683,7 +683,7 @@ def interact( vm, tests, pre='', post='', prompt=Prompt,
     vm.expect( prompt )
     if clean:
         log( '* Cleaning vm' )
-        vm.sendline( '~/nestnet/util/install.sh -d' )
+        vm.sendline( '~/mininet/util/install.sh -d' )
     vm.expect( prompt )
     log( '* Shutting down' )
     vm.sendline( 'sync; sudo shutdown -h now' )
@@ -861,7 +861,7 @@ def build( flavor='raring32server', tests=None, pre='', post='', memory=1024 ):
     log( '* Logging to', abspath( LogFile.name ) )
     log( '* Created working directory', dir )
     image, kernel, initrd, partnum = findBaseImage( flavor )
-    basename = 'nestnet-' + flavor
+    basename = 'mininet-' + flavor
     volume = basename + '.qcow2'
     run( 'qemu-img create -f qcow2 -b %s %s' % ( image, volume ) )
     log( '* VM image for', flavor, 'created as', volume )
@@ -874,12 +874,12 @@ def build( flavor='raring32server', tests=None, pre='', post='', memory=1024 ):
     version = interact( vm, tests=tests, pre=pre, post=post )
     size = qcow2size( volume )
     arch = archFor( flavor )
-    vmdk = convert( volume, basename='nestnet-vm-' + arch )
+    vmdk = convert( volume, basename='mininet-vm-' + arch )
     if not SaveQCOW2:
         log( '* Removing qcow2 volume', volume )
         os.remove( volume )
     log( '* Converted VM image stored as', abspath( vmdk ) )
-    ovfname = 'nestnet-%s-%s-%s' % ( version, ovfdate, OSVersion( flavor ) )
+    ovfname = 'mininet-%s-%s-%s' % ( version, ovfdate, OSVersion( flavor ) )
     osname, osid = OVFOSNameID( flavor )
     ovf = generateOVF( name=ovfname, osname=osname, osid=osid,
                        diskname=vmdk, disksize=size )
@@ -929,7 +929,7 @@ def runTests( vm, tests=None, pre='', post='', prompt=Prompt, uninstallNtpd=Fals
 
 def getMininetVersion( vm ):
     "Run mn to find Mininet version in VM"
-    vm.sendline( '(cd ~/nestnet; PYTHONPATH=. bin/mn --version)' )
+    vm.sendline( '(cd ~/mininet; PYTHONPATH=. bin/mn --version)' )
     # Eat command line echo, then read output line
     vm.readline()
     version = vm.readline().strip()
