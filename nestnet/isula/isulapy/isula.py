@@ -1,10 +1,8 @@
-import grpc, os
-# import nestnet.isula.api_pb2
-# import nestnet.isula.api_pb2_grpc
-# import api_pb2,api_pb2_grpc
-from nestnet.isula import api_pb2_grpc, api_pb2
+import grpc
+import os
 
-from nestnet.log import info, error, warn, debug
+import isulapy.api_pb2 as api_pb2
+import isulapy.api_pb2_grpc as api_pb2_grpc
 
 
 # connect to isula rpc service:test ok
@@ -71,11 +69,11 @@ def pull_image(image_name):
 
     if not exist:
         try:
-            info('image "%s" not found,Trying to pull image' % image_name)
+            print('image "%s" not found,Trying to pull image' % image_name)
             pull_rep = stub.PullImage(api_pb2.PullImageRequest(image=api_pb2.ImageSpec(image=image_name)))
             return True
         except BaseException:
-            error("Pull error: %s" % pull_rep)
+            print("Pull error: %s" % pull_rep)
     else:
         return True
 

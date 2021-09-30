@@ -63,7 +63,7 @@ import time
 from subprocess import Popen, PIPE, check_output
 from time import sleep
 
-import nestnet.isula.isula as isula
+import isulapy.isula as isula
 from nestnet.log import info, error, warn, debug
 from nestnet.util import (quietRun, errRun, errFail, moveIntf, isShellBuiltin,
                           numCores, retry, mountCgroups, BaseString, decode,

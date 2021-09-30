@@ -1,0 +1,7 @@
+build/
+dist/
+isulapy.egg-info/
+/.pypirc
+.git/
+.idea/
+

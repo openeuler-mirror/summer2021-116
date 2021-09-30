@@ -321,7 +321,7 @@ class MininetRunner( object ):
                     raise Exception( "Could not find a default controller "
                                      "for switch %s" %
                                      args.switch )
-
+        
         topo = buildTopo( TOPOS, args.topo )
         switch = customClass( SWITCHES, args.switch )
         host = customClass( HOSTS, args.host )

@@ -12,7 +12,7 @@ import os
 import iptc
 import ipaddress
 import shlex
-import nestnet.isula.isula as isula
+import isulapy.isula as isula
 
 from nestnet.log import info
 from nestnet.term import cleanUpScreens
